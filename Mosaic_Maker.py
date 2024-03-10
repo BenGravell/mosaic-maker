@@ -33,16 +33,20 @@ def load_dataset(dataset_name: str):
 def get_target_image():
     use_sample_image = st.toggle("Use Sample Image")
     if use_sample_image:
-        image_name = st.selectbox("Sample Image", options=["umbrellas", "bouquet"], format_func=lambda x: x.title())
-        return PIL.Image.open(f"sample_images/{image_name}.jpg").convert("RGB")
+        image_name = st.selectbox(
+            "Sample Image",
+            options=["umbrellas", "tulips", "scuba", "abstract", "bouquet"],
+            format_func=lambda x: x.title(),
+        )
+        return PIL.Image.open(f"sample_images/{image_name}.jpg").convert("RGB"), image_name
 
     st.session_state.uploaded_file = st.file_uploader(
         "Upload target image", type=[".jpg", ".png"], label_visibility="collapsed"
     )
     if (uploaded_file := st.session_state.get("uploaded_file")) is None:
-        return None
+        return None, None
 
-    return PIL.Image.open(uploaded_file).convert("RGB")
+    return PIL.Image.open(uploaded_file).convert("RGB"), uploaded_file.name
 
 
 def create_mosaic(source_img_arr, tgt_img_src, tgt_res, assignment_algorithm):
@@ -71,7 +75,7 @@ def create_mosaic(source_img_arr, tgt_img_src, tgt_res, assignment_algorithm):
     return final_img
 
 
-def display_image_result(img, name):
+def display_image_result(img, name, filename):
     if img is None:
         st.info(f"{name} not generated yet.")
         return
@@ -83,7 +87,7 @@ def display_image_result(img, name):
 
     downloads_as_png = st.toggle(
         "Download as PNG",
-        help="Filesizes will be larger and download buttons will take longer to render.",
+        help="PNG filesizes will be larger and download buttons will take longer to render.",
         key=f"download_as_png__{name}",
     )
 
@@ -99,7 +103,7 @@ def display_image_result(img, name):
     st.download_button(
         label=f"Download {name.title()} ({format})",
         data=imaging.save_image_to_bytes(img, format=format),
-        file_name=f"target.{ext}",
+        file_name=f'{filename}_{name.lower().replace(" ", "_")}.{ext}',
         mime=mime,
         use_container_width=True,
     )
@@ -123,7 +127,7 @@ def get_mosaic_options_from_ui():
         )
 
     out["tgt_res"] = st.select_slider(
-        "Target Resolution",
+        "Mosaic Resolution",
         options=constants.TARGET_RESOLUTION_OPTIONS,
         value=64,
         help="Number of source image patches to use along the largest target image dimension.",
@@ -131,7 +135,7 @@ def get_mosaic_options_from_ui():
 
     if out["assignment_algorithm"] == "jonker_volgenant" and out["tgt_res"] > 64:
         st.warning(
-            "The Jonker-Volgenant assignment algorithm is not recommended for target resolutions greater than 64."
+            "The Jonker-Volgenant assignment algorithm is not recommended for mosaic resolutions greater than 64."
             " You may experience slow or hung mosaic generation."
         )
 
@@ -145,19 +149,23 @@ def main():
     with target_img_st_column:
         st.header("Target Image", anchor=False)
         with st.expander("Options", expanded=True):
-            tgt_img_src = get_target_image()
+            with st.container(border=False, height=240):
+                tgt_img_src, tgt_img_filename = get_target_image()
 
-        display_image_result(tgt_img_src, "Target image")
+        display_image_result(tgt_img_src, "Target image", filename=tgt_img_filename)
 
     with mosaic_img_st_column:
         st.header("Mosaic Image", anchor=False)
         with st.expander("Options", expanded=True):
-            mosaic_options = get_mosaic_options_from_ui()
-            do_generate_mosaic = st.button("Generate Mosaic", use_container_width=True)
+            with st.container(border=False, height=240):
+                mosaic_options = get_mosaic_options_from_ui()
+                do_generate_mosaic = st.button("Generate Mosaic", use_container_width=True)
 
         load_dataset(mosaic_options["dataset_name"])
         if (source_img_arr := st.session_state.get("source_img_arr")) is None:
             st.warning("Source images not loaded yet.")
+        elif tgt_img_src is None:
+            st.warning("Target image not selected yet.")
         else:
             if do_generate_mosaic:
                 try:
@@ -171,7 +179,7 @@ def main():
                     st.warning("Could not generate mosaic due to the following exception.")
                     st.exception(exc)
             final_img = st.session_state.get("final_img")
-            display_image_result(final_img, "Mosaic image")
+            display_image_result(final_img, "Mosaic image", filename=tgt_img_filename)
 
 
 if __name__ == "__main__":
