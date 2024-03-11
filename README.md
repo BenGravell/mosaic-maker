@@ -53,3 +53,7 @@ to update your virtual environment with the packages.
 - [`sample_images/scuba.jpg`](/sample_images/scuba.jpg) is an image by [NEOM](https://unsplash.com/@neom?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash) provided under the [Unsplash License](https://unsplash.com/license) on [Unsplash](https://unsplash.com/photos/a-person-swimming-over-a-colorful-coral-reef-eNIGxtOdB10?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash)
 - [`sample_images/abstract.jpg`](/sample_images/abstract.jpg) is an image by [Martin Katler](https://unsplash.com/@martinkatler?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash) provided under the [Unsplash License](https://unsplash.com/license) on [Unsplash](https://unsplash.com/photos/a-red-white-and-blue-abstract-background-S-Lm2lhayi0?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash)
 - [`sample_images/bouquet.jpg`](/sample_images/bouquet.jpg) is ["Bouquet of Flowers in a Vase"](https://www.getty.edu/art/collection/object/109JED) by [Georgius Jacobus Johannes van Os](https://www.getty.edu/art/collection/person/105J18) provided under [The J. Paul Getty Museum's Open Content Program](https://www.getty.edu/projects/open-content-program/).
+
+### Datasets
+
+[CIFAR-10 and CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) are used for the source images via the [standard Torch loaders](https://pytorch.org/vision/main/datasets.html).
