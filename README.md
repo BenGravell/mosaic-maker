@@ -2,7 +2,7 @@
 
 Create mosaics from thousands of unique images.
 
-<img src="sample_images/umbrellas.jpg" height="600"> ➡️ <img src="mosaic_images/umbrellas.jpg" height="600">
+<img src="sample_images/umbrellas.jpg" height="600"> ➡️ <img src="https://i.imgur.com/yLJ4r09.jpg" height="600">
 
 ## Usage
 
