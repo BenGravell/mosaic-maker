@@ -10,7 +10,7 @@ Create mosaics from thousands of unique images.
 streamlit run Mosaic_Maker.py
 ```
 
-*Note: Large mosaics require calculation and storage of large distance matrices, requiring moderately heavy CPU (~1 minute @ 100% CPU usage on an Intel i5-11300H @ 3.10GHz) and RAM usage (~8 GB) and hence this app may not be suitable for cloud deployment without increased resource allocation.*
+*Note: Large mosaics require calculation and storage of large distance matrices, requiring moderately heavy CPU (~1 minute @ 100% CPU usage on an Intel i5-11300H @ 3.10GHz) and RAM usage (~8 GB) and hence this app may not be suitable for cloud without increased resource allocation. For example, the free tier of [Streamlit Community Cloud](https://streamlit.io/cloud) only offers 1GB guaranteed RAM availability as of March 10, 2024, which is not sufficient for this app.*
 
 ## Development
 
