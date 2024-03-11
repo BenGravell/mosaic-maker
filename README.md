@@ -4,6 +4,8 @@ Create mosaics from thousands of unique images.
 
 <img src="sample_images/umbrellas.jpg" height="400"> ➡️ <img src="https://i.imgur.com/yLJ4r09.jpg" height="400">
 
+[View the example mosaic on Imgur in full quality](https://imgur.com/gallery/AUaAlhb)
+
 ## Usage
 
 ```bash
