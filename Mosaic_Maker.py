@@ -17,20 +17,7 @@ def streamlit_setup():
 
 def get_mosaic_options_from_ui():
     out = {}
-    cols = st.columns(2)
-    with cols[0]:
-        out["dataset_name"] = st.selectbox("Source Image Dataset Name", ["CIFAR100", "CIFAR10"])
-
-    with cols[1]:
-        assignment_algorithm_description_map = {
-            "greedy_random": "Greedy Random (fast, low quality)",
-            "jonker_volgenant": "Jonker-Volgenant (slow, high quality)",
-        }
-        out["assignment_algorithm"] = st.selectbox(
-            "Assignment Algorithm",
-            options=["jonker_volgenant", "greedy_random"],
-            format_func=lambda x: assignment_algorithm_description_map[x],
-        )
+    out["dataset_name"] = st.selectbox("Source Image Dataset Name", ["CIFAR100", "CIFAR10"])
 
     cols = st.columns(2)
     with cols[0]:
@@ -47,7 +34,7 @@ def get_mosaic_options_from_ui():
     with cols[1]:
         out["Y_batch_size"] = st.select_slider(
             "Source Image Batch Size",
-            options=[100, 500, 1000, 2000, 5000, 10000],
+            options=[100, 500, 1000, 2000, 5000, 10000, 20000],
             value=5000,
             help=(
                 "Max number of source images used in the batches used when solving assignment problems. Larger sizes"
@@ -207,7 +194,7 @@ def main():
                         source_img_arr,
                         tgt_img_src,
                         mosaic_options["tgt_res"],
-                        mosaic_options["assignment_algorithm"],
+                        "jonker_volgenant",
                         mosaic_options["X_batch_size"],
                         mosaic_options["Y_batch_size"],
                         mosaic_options["target_img_blend_alpha"],

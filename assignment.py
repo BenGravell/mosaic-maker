@@ -34,7 +34,7 @@ def compute_assignment(X, Y, algorithm: str) -> Any:
     return assignment_func(D)
 
 
-def compute_assignment_batched(X, Y, X_batch_size: int = 1000, Y_batch_size: int = 5000, algorithm: str = ""):
+def compute_assignment_batched(X, Y, X_batch_size: int, Y_batch_size: int, algorithm: str):
     """Compute assignment using randomized batches.
 
     Together X_batch_size and Y_batch_size determine the max distance matrix and assignment problem size,
