@@ -6,15 +6,28 @@ Create mosaics from thousands of unique images.
 
 [View the example mosaic on Imgur in full quality](https://imgur.com/gallery/AUaAlhb)
 
-## Usage
+## Running the app
+
+### Run remotely
+
+Open the deployed app at <https://mosaic-maker.streamlit.app/>
+
+### Run locally
+
+Run
 
 ```bash
 streamlit run Mosaic_Maker.py
 ```
 
-![Mosaic maker example app usage screenshot](app_usage_images/mosaic_maker_screenshot.jpg)
+## Usage guide
 
-*Note: Large mosaics require calculation and storage of large distance matrices, requiring moderately heavy CPU (~1 minute @ 100% CPU usage on an Intel i5-11300H @ 3.10GHz) and RAM usage (~8 GB) and hence this app may not be suitable for cloud without increased resource allocation. For example, the free tier of [Streamlit Community Cloud](https://streamlit.io/cloud) only offers 1GB guaranteed RAM availability as of March 10, 2024, which is not sufficient for this app.*
+1. Load your target image.
+2. Adjust the options.
+3. Click "Generate Mosaic".
+4. Download the generated mosaic image.
+
+![Mosaic maker example app usage screenshot](app_usage_images/mosaic_maker_screenshot.jpg)
 
 ## Development
 
