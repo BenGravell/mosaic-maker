@@ -1,8 +1,8 @@
 """Functions for loading data."""
 
 
-from PIL.Image import Image
-import torchvision
+from PIL.Image import Image  # type: ignore[import]
+import torchvision  # type: ignore[import]
 
 
 def load_source_images(dataset_name: str = "CIFAR100") -> list[Image]:

@@ -1,30 +1,44 @@
 """Streamlit app for creating image mosaics."""
 
+import dataclasses
+
 import numpy as np
-import PIL
-from PIL.Image import Image, blend
-import streamlit as st
+import PIL.Image  # type: ignore[import]
+from PIL.Image import Image, blend  # type: ignore[import]
+import streamlit as st  # type: ignore[import]
 
 import data_loading as dl
 import imaging
 import constants
 import assignment
+from type_defs import ArrU8
 
 
-def streamlit_setup():
+@dataclasses.dataclass
+class AppOptions:
+    dataset_name: str
+    X_batch_size: int
+    Y_batch_size: int
+    tgt_res: int
+    target_img_blend_alpha: float
+    assignment_algorithm: str
+
+
+def streamlit_setup() -> None:
+    """Set up Streamlit."""
     st.set_page_config(page_title="Mosaic Maker", page_icon="🖼️", layout="wide")
 
 
-def get_mosaic_options_from_ui():
-    out = {}
-    out["dataset_name"] = st.selectbox("Source Image Dataset Name", ["CIFAR100", "CIFAR10"])
+def get_app_options_from_ui() -> AppOptions:
+    """Get app options from the UI."""
+    dataset_name = st.selectbox("Source Image Dataset", constants.DATASET_NAME_OPTIONS)
 
     cols = st.columns(2)
     with cols[0]:
-        out["X_batch_size"] = st.select_slider(
+        X_batch_size = st.select_slider(
             "Target Image Batch Size",
-            options=[100, 500, 1000, 2000],
-            value=1000,
+            options=constants.X_BATCH_SIZE_OPTIONS,
+            value=256,
             help=(
                 "Max number of target image pixels used in the batches used when solving assignment problems. Larger"
                 " sizes expose more choices for the assignment, resulting in higher quality mosaics, but increase CPU"
@@ -32,10 +46,10 @@ def get_mosaic_options_from_ui():
             ),
         )
     with cols[1]:
-        out["Y_batch_size"] = st.select_slider(
+        Y_batch_size = st.select_slider(
             "Source Image Batch Size",
-            options=[100, 500, 1000, 2000, 5000, 10000, 20000],
-            value=5000,
+            options=constants.Y_BATCH_SIZE_OPTIONS,
+            value=8192,
             help=(
                 "Max number of source images used in the batches used when solving assignment problems. Larger sizes"
                 " expose more choices for the assignment, resulting in higher quality mosaics, but increase CPU and RAM"
@@ -43,47 +57,62 @@ def get_mosaic_options_from_ui():
             ),
         )
 
-    out["tgt_res"] = st.select_slider(
+    assignment_algorithm = st.selectbox(
+        "Assignment Algorithm",
+        options=constants.ASSIGNMENT_ALGORITHM_OPTIONS,
+        format_func=constants.ASSIGNMENT_ALGORITHM_OPTIONS_FORMAT_FUNC,
+        help=(
+            "Algorithm for solving the assignment problem for each batch. Jonker-Volgenant returns the best (optimal)"
+            " solutions, but runs slower. Greedy-Random returns good (suboptimal) solutions, and runs faster,"
+            " especially with a large Source Image Batch Size."
+        ),
+    )
+
+    tgt_res = st.select_slider(
         "Mosaic Resolution",
         options=constants.TARGET_RESOLUTION_OPTIONS,
-        value=64,
+        value=96,
         help="Number of source image patches to use along the largest target image dimension.",
     )
 
-    out["target_img_blend_alpha"] = st.slider(
+    target_img_blend_alpha = st.select_slider(
         "Target Image Blend Alpha",
-        min_value=0.0,
-        max_value=1.0,
+        options=constants.TARGET_IMG_BLEND_ALPHA_OPTIONS,
         value=0.0,
-        step=0.05,
         help=(
             'Blend the mosaic image with the (pixelated) target image. This allows you to "cheat" by using color'
             ' information directly from the target image. This will have the effect of "washing out" the colors in the'
             ' small patch images. A setting of 0.0 will yield a "true" mosaic, with no "cheating". A setting of 1.0'
             " will just yield the literal (pixelated) target image. Depending on the mosaic, you may be able to get"
-            " away with up to a setting of 0.30 before it starts to become obvious. Most mosaics will look best with a"
-            " setting between 0 and 0.20."
+            " away with up to a setting of 0.3 before it starts to become obvious. Most mosaics will look best with a"
+            " setting between 0 and 0.2."
         ),
     )
 
-    return out
+    return AppOptions(
+        dataset_name=dataset_name,
+        X_batch_size=X_batch_size,
+        Y_batch_size=Y_batch_size,
+        tgt_res=tgt_res,
+        target_img_blend_alpha=target_img_blend_alpha,
+        assignment_algorithm=assignment_algorithm,
+    )
 
 
 @st.cache_resource(max_entries=2)
-def load_source_images(dataset_name: str) -> list[Image]:
+def load_source_images(dataset_name: str) -> ArrU8:
+    """Wrapper around dl.load_source_images to provide streamlit caching."""
     return np.array(dl.load_source_images(dataset_name))
 
 
-def load_dataset(dataset_name: str):
-    """Wrapper around dl.load_source_images to provide streamlit caching."""
+def load_dataset(dataset_name: str) -> None:
     if st.session_state.get("dataset_name") == dataset_name and st.session_state.get("source_img_arr") is not None:
         return
-    with st.spinner("Loading dataset..."):
-        st.session_state.source_img_arr = load_source_images(dataset_name)
-        st.session_state.dataset_name = dataset_name
+    st.session_state.source_img_arr = load_source_images(dataset_name)
+    st.session_state.dataset_name = dataset_name
 
 
-def get_target_image():
+def get_target_image() -> tuple[Image | None, str]:
     use_sample_image = st.toggle("Use Sample Image")
     if use_sample_image:
         image_name = st.selectbox(
@@ -97,18 +126,22 @@ def get_target_image():
         "Upload target image", type=[".jpg", ".png"], label_visibility="collapsed"
     )
     if (uploaded_file := st.session_state.get("uploaded_file")) is None:
-        return None, None
+        return None, ""
 
     return PIL.Image.open(uploaded_file).convert("RGB"), uploaded_file.name
 
 
 def create_mosaic(
-    source_img_arr, tgt_img_src, tgt_res, assignment_algorithm, X_batch_size, Y_batch_size, target_img_blend_alpha
-):
-    Y = np.mean(source_img_arr, axis=(1, 2))
+    source_img_arr: ArrU8,
+    tgt_img_src: Image,
+    app_options: AppOptions,
+) -> Image:
+    Y = np.mean(source_img_arr, axis=(1, 2)).astype(np.int64)
 
     tgt_img_orig_size = tgt_img_src.size
-    tgt_img_new_size = tuple(np.round(np.array(tgt_img_orig_size) * (tgt_res / max(tgt_img_orig_size))).astype(int))
+    tgt_img_new_size = tuple(
+        np.round(np.array(tgt_img_orig_size) * (app_options.tgt_res / max(tgt_img_orig_size))).astype(int)
+    )
     N = np.prod(tgt_img_new_size)
 
     if source_img_arr.shape[0] < N:
@@ -122,16 +155,18 @@ def create_mosaic(
     X = np.reshape(tgt_arr, (N, 3), order="F")
 
     with st.spinner("Solving assignment problem..."):
-        sol = assignment.compute_assignment_batched(X, Y, X_batch_size, Y_batch_size, assignment_algorithm)
+        sol = assignment.compute_assignment_batched(
+            X, Y, app_options.X_batch_size, app_options.Y_batch_size, app_options.assignment_algorithm
+        )
     with st.spinner("Assembling final mosaic image..."):
         final_img = imaging.create_final_img(source_img_arr, sol, tgt_img_new_size)
         # Apply blending
         tgt_img_at_final_img_size = tgt_img.resize(final_img.size, resample=PIL.Image.NEAREST)
-        final_img = blend(final_img, tgt_img_at_final_img_size, target_img_blend_alpha)
+        final_img = blend(final_img, tgt_img_at_final_img_size, app_options.target_img_blend_alpha)
     return final_img
 
 
-def display_image_result(img, name, filename):
+def display_image_result(img: Image | None, name: str, filename: str) -> None:
     if img is None:
         st.info(f"{name} not generated yet.")
         return
@@ -143,7 +178,7 @@ def display_image_result(img, name, filename):
 
     downloads_as_png = st.toggle(
         "Download as PNG",
-        help="PNG filesizes will be larger and download buttons will take longer to render.",
+        help="PNG filesize will be larger and download button will take longer to render.",
         key=f"download_as_png__{name}",
     )
 
@@ -165,7 +200,7 @@ def display_image_result(img, name, filename):
     )
 
 
-def main():
+def main() -> None:
     streamlit_setup()
     target_img_st_column, mosaic_img_st_column = st.columns(2)
 
@@ -179,10 +214,11 @@ def main():
     with mosaic_img_st_column:
         st.header("Mosaic Image", anchor=False)
         with st.expander("Options", expanded=True):
-            mosaic_options = get_mosaic_options_from_ui()
-            do_generate_mosaic = st.button("Generate Mosaic", use_container_width=True)
+            app_options = get_app_options_from_ui()
 
-        load_dataset(mosaic_options["dataset_name"])
+        do_generate_mosaic = st.button("Generate Mosaic", use_container_width=True)
+
+        load_dataset(app_options.dataset_name)
         if (source_img_arr := st.session_state.get("source_img_arr")) is None:
             st.warning("Source images not loaded yet.")
         elif tgt_img_src is None:
@@ -193,11 +229,7 @@ def main():
                     st.session_state.final_img = create_mosaic(
                         source_img_arr,
                         tgt_img_src,
-                        mosaic_options["tgt_res"],
-                        "jonker_volgenant",
-                        mosaic_options["X_batch_size"],
-                        mosaic_options["Y_batch_size"],
-                        mosaic_options["target_img_blend_alpha"],
+                        app_options,
                     )
                 except Exception as exc:
                     st.warning("Could not generate mosaic due to the following exception.")
