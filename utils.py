@@ -1,9 +1,9 @@
 import numpy as np
 
-from type_defs import ArrI64
+from type_defs import ArrS64
 
 
-def fourspace(start: int, stop: int) -> ArrI64:
+def fourspace(start: int, stop: int) -> ArrS64:
     """Create an array of integers all divisible by 4 spaced exponentially with base 2."""
     base = np.array([4, 5, 6, 7])
     min_scale_log2 = int(np.floor(np.log2(np.floor(start / base[0]))))
