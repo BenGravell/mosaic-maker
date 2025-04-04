@@ -117,7 +117,7 @@ def get_target_image() -> tuple[Image | None, str]:
     if use_sample_image:
         image_name = st.selectbox(
             "Sample Image",
-            options=["umbrellas", "tulips", "scuba", "abstract", "bouquet"],
+            options=["macaw", "peacock", "seagull", "tulips", "umbrellas", "scuba", "abstract"],
             format_func=lambda x: x.title(),
         )
         return PIL.Image.open(f"sample_images/{image_name}.jpg").convert("RGB"), image_name
